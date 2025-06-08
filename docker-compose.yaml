@@ -118,6 +118,9 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: webserver
     ports:
       - "8080:8080"
@@ -135,6 +138,9 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: scheduler
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
@@ -150,6 +156,9 @@ services:
 
   airflow-worker:
     <<: *airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile    
     command: celery worker
     healthcheck:
       # yamllint disable rule:line-length
@@ -173,6 +182,9 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile    
     command: triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
