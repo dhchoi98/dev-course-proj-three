@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta
+from holidays import country_holidays
+from airflow.models import Variable
+import requests
 
 def parse_weather_text(text):
     lines = text.strip().splitlines()
@@ -104,3 +107,53 @@ def get_last_week_range(execution_date: datetime):
     tm2 = end_date.strftime("%Y%m%d") + "2300"
     
     return tm1, tm2
+
+def is_holiday(date_str: str) -> bool:
+    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+    year = dt.year  # 날짜에서 연도 추출
+    kr_holidays = country_holidays("KR", years=year)
+    return dt.date() in kr_holidays
+
+def is_weekend(date_str):
+    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+    return dt.weekday() >= 5
+
+def describe_days(records):
+    """분석 대상 날짜를 설명 리스트로 반환"""
+    days = sorted(set(r["timestamp_readable"][:10] for r in records))
+    desc = []
+    for day in days:
+        dt = datetime.strptime(day, "%Y-%m-%d")
+        yoil = "월화수목금토일"[dt.weekday()]
+        tag = "공휴일" if is_holiday(day + " 00:00") else ("주말" if dt.weekday() >= 5 else "평일")
+        desc.append(f"{day[5:]} ({yoil}) - {tag}")
+    return desc
+
+
+def format_slack_message(region, period, score, summary, target_days):
+    return f"""📆 {region} 공휴일/주말 날씨 만족도 분석 결과 ({period})
+
+🌤️ 분석 대상일:
+- {'\n- '.join(target_days)}
+
+📊 종합 점수: {score}점
+
+📌 요약 지표:
+- 평균 기온: {summary['avg_temp']}°C
+- 풍속: {summary['wind_speed']} m/s
+- 강수량: {summary['precipitation']} mm
+- 습도: {summary['humidity']}%
+- 지면온도: {summary['ground_temp']}°C
+- 풍향: {summary['wind_dir']}°
+"""
+
+
+def send_slack_message(message: str):
+    webhook_url = Variable.get("slack_webhook_url")  
+    payload = {"text": message}
+    response = requests.post(webhook_url, json=payload)
+
+    if response.status_code == 200:
+        print("✅ Slack 전송 성공")
+    else:
+        print(f"❌ Slack 전송 실패: {response.status_code}, {response.text}")
