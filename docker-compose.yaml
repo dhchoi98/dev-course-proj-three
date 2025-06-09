@@ -70,7 +70,7 @@ x-airflow-common:
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     AIRFLOW_VAR_DATA_DIR: /opt/airflow/data
     AIRFLOW_CONN_TEST_ID: test_connection
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- apache-airflow-providers-snowflake==4.4.2}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- apache-airflow-providers-snowflake}
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
@@ -80,6 +80,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data
+    - ${AIRFLOW_PROJ_DIR:-.}/dbts:/usr/app
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -187,6 +188,13 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-snowflake:1.9.latest # 원하는 버전 사용
+    volumes:
+      - ~/.dbt:/root/.dbt        # 로컬 프로파일 연결
+    entrypoint: ["dbt"]
+    working_dir: /usr/app
 
   airflow-init:
     <<: *airflow-common

@@ -1,7 +1,5 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from airflow.providers.snowflake.operators.snowflake import S3ToSnowflakeOperator
 from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 import snowflake.connector
@@ -35,8 +33,7 @@ def apidata_to_s3(**context):
         
         # 실행 날짜 설정
         exe_date = context["execution_date"] 
-        basedate = exe_date.strftime('%Y%m%d')
-        
+        basedate = (exe_date- timedelta(1)).strftime('%Y%m%d')
         print("basedate : " + basedate)
         
         # 파일명 설정
@@ -82,7 +79,6 @@ def apidata_to_s3(**context):
         # 성공 메시지 전송
         success_msg = f"지진 API 데이터 처리 완료: {basedate}"
         # send_slack_plugins.send_slack_notification(context, success_msg, is_error=False)
-        context['task_instance'].xcom_push(key='s3_key', value=s3_key)
         context['task_instance'].xcom_push(key='basedate', value=basedate)
     
     except Exception as e:
@@ -145,7 +141,7 @@ def s3_to_snowflake(**context):
 dag = DAG(
     dag_id = 'eq_daily_Update_to_Snowflake',
     start_date = datetime(2025,6,4), # 날짜가 미래인 경우 실행이 안됨
-    schedule = '0 9 * * *',  # 적당히 조절
+    schedule = '0 8 * * *',  # 적당히 조절
     max_active_runs = 1,
     max_active_tasks = 1,
     catchup = False,
@@ -160,19 +156,6 @@ update_daily_eq_to_S3 = PythonOperator(
     python_callable=apidata_to_s3,
     dag=dag
 )
-
-# update_daily_S3_to_snowflake = S3ToSnowflakeOperator(
-#     task_id='update_daily_S3_to_snowflake',
-#     snowflake_conn_id='snowflake_conn_id',
-#     s3_keys=["{{ task_instance.xcom_pull(task_ids='update_daily_eq_to_S3', key='s3_key') }}"],
-#     # table=Variable.get('RAW_EQ_WORLD'),
-#     table='RAW_EQ_WORLD',
-#     # schema=snow_conn.extra_dejson.get('schema'),
-#     schema='RAW_DATA',
-#     stage='MY_S3_STAGE',
-#     file_format="(type = 'CSV',field_delimiter = ',')",
-#     dag=dag,
-# )
 
 update_daily_S3_to_snowflake = PythonOperator(
     task_id='update_daily_S3_to_snowflake',

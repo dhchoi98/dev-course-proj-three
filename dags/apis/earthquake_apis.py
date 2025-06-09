@@ -2,7 +2,7 @@ import requests  # requests 모듈 임포트
 from datetime import date, timedelta
 import xml.etree.ElementTree as ET
 import pandas as pd
-
+from datetime import datetime
 
 def get_api_xmldata(base_url, sdate, edate, auth_key):
     url = "{base_url}?orderTy={order_ty}&frDate={fr_date}&laDate={la_date}&authKey={auth_key}".format(
@@ -38,7 +38,16 @@ def rtn_eq_dataframe(xml_data):
     
     # XML 구조에 따라 데이터를 추출합니다.
     # 여기서는 <info> 태그를 순회하고 그 하위 태그에서 값을 추출하는 예시입니다.
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     root = root.find('earthqueakNoti')
+    record = root.find('info')
+    if len(root.findall('info')) == 0 or record.text and "등록된 내용이 없습니다" in record.text:
+        columns = ['msgCode', 'cntDiv', 'arDiv', 'eqArCdNm', 'eqPt', 'nkDiv', 
+                    'tmIssue', 'eqDate', 'magMl', 'magDiff', 'eqDt', 'eqLt', 
+                    'eqLn', 'majorAxis', 'minorAxis', 'depthDiff', 'jdLoc', 
+                    'jdLocA', 'reFer', 'created_at', 'updated_at']
+        return pd.DataFrame(columns=columns)
+    
     for record in root.findall('info'):
         msgCode = record.find('msgCode').text if record.find('msgCode') is not None else None
         cntDiv = record.find('cntDiv').text if record.find('cntDiv') is not None else None
@@ -58,7 +67,7 @@ def rtn_eq_dataframe(xml_data):
         depthDiff = record.find('depthDiff').text if record.find('depthDiff') is not None else None
         jdLoc = record.find('jdLoc').text if record.find('jdLoc') is not None else None
         jdLocA = record.find('jdLocA').text if record.find('jdLocA') is not None else None
-        reFer = record.find('ReFer').text if record.find('ReFer') is not None else None
+        reFer = change_line_to_space(record.find('ReFer').text) if record.find('ReFer') is not None else None
         
         # 추출한 데이터를 딕셔너리 형태로 저장
         data_list.append({
@@ -80,7 +89,9 @@ def rtn_eq_dataframe(xml_data):
             'depthDiff': depthDiff,
             'jdLoc': jdLoc,
             'jdLocA': jdLocA,
-            'reFer': reFer
+            'reFer': reFer,
+            'created_at':now,
+            'updated_at':now
         })
 
     #Pandas 데이터 프레임 변환
@@ -88,3 +99,8 @@ def rtn_eq_dataframe(xml_data):
     print(df.head())
     
     return df
+
+def change_line_to_space(value):
+    if isinstance(value, str):
+        return value.replace('\n', ' ').replace('\r', ' ')
+    return value

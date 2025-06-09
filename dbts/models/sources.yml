@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw_data
+    tables:
+      - name: eq_world
+        identifier: raw_eq_world
+        loaded_at_field: created_at
+        

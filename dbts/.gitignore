@@ -1,0 +1,23 @@
+# dbt artifacts
+dbt_modules/
+dbt_packages/
+target/
+logs/
+manifest.json
+run_results.json
+catalog.json
+
+# DBT profile (보통 ~/.dbt/profiles.yml에 있음)
+profiles.yml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# VSCode settings
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
