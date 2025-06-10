@@ -70,24 +70,45 @@ def summarize_weather(records):
 
 def calculate_outdoor_score(weather):
     score = 100
-
+    
+    # 기온과 습도로 불쾌지수 계산
     temp = weather["avg_temp"]
-    if temp < 10 or temp > 30:
+    humidity = weather["humidity"]
+    
+    # 불쾌지수 = 0.81 × 기온 + 0.01 × 습도 × (0.99 × 기온 - 14.3) + 46.3
+    discomfort_index = 0.81 * temp + 0.01 * humidity * (0.99 * temp - 14.3) + 46.3
+    
+    # 불쾌지수에 따른 점수 차감
+    if discomfort_index >= 80:  # 매우 불쾌
         score -= 40
-    elif 10 <= temp < 15 or 26 <= temp <= 30:
+    elif discomfort_index >= 75:  # 불쾌
         score -= 20
-
+    elif discomfort_index <= 60:  # 쾌적
+        score += 10
+    
+    # 강수량에 따른 점수 차감
     rain = weather["precipitation"]
-    if rain > 0:
-        score -= 30
-
+    if rain > 10:  # 강한 비
+        score -= 40
+    elif rain > 0:  # 약한 비
+        score -= 20
+    
+    # 풍속에 따른 점수 차감
     wind = weather["wind_speed"]
-    if wind > 5:
-        score -= 10
-    elif wind > 3:
-        score -= 5
-
-    return max(score, 0)
+    if wind > 10:  # 강풍
+        score -= 30
+    elif wind > 5:  # 약풍
+        score -= 15
+    
+    # 지면온도 고려
+    ground_temp = weather["ground_temp"]
+    if ground_temp is not None:
+        if ground_temp > 35:  # 뜨거운 지면
+            score -= 20
+        elif ground_temp < 5:  # 차가운 지면
+            score -= 20
+    
+    return max(min(score, 100), 0)  # 0-100 사이로 제한
 
 def format_simple_datetime(timestamp_str: str) -> str:
     dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M")
