@@ -57,7 +57,6 @@ def fetch_and_filter_station_info():
         writer.writerow(columns)
         writer.writerows(filtered_rows)
 
-    print(f"필터링 후 {len(filtered_rows)}개 레코드만 남았습니다: {SAVE_PATH}")
 
 with DAG(
     dag_id="station_master_seed_dag",
