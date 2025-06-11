@@ -71,17 +71,21 @@ default_args = {
 
 with DAG(
     dag_id="monthly_dust_avg_to_csv",
-    start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # 수동 실행 권장
+    start_date=datetime(2024, 2, 1),
+    schedule_interval='0 0 1 * *',  # 매월 1일 00:00에 실행
     catchup=False,
     default_args=default_args,
-    description="2024~2025년 미세먼지 STN_ID별 월별 평균 집계, S3 업로드, Snowflake COPY INTO"
+    description="매월 전월 미세먼지 월평균 집계, S3 업로드, Snowflake COPY INTO"
 ) as dag:
 
     @task()
-    def get_and_save():
-        start_date = datetime(2024, 1, 1)
-        end_date = datetime(2024, 12, 31)
+    def get_and_save(execution_date=None):
+        # execution_date가 2024-07-01 00:00:00이면, 전월(2024-06-01 ~ 2024-06-30) 데이터 수집
+        dt = execution_date or datetime.now()
+        first_day_of_prev_month = (dt.replace(day=1) - timedelta(days=1)).replace(day=1)
+        last_day_of_prev_month = dt.replace(day=1) - timedelta(days=1)
+        start_date = first_day_of_prev_month
+        end_date = last_day_of_prev_month
         df = fetch_avg_by_day(start_date, end_date)
         if df.empty:
             print("No data fetched!")
