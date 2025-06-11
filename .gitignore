@@ -1,3 +1,20 @@
+# API 키, 비밀정보
+config/weather_api_keys.json
+
+# Snowflake 정보
+config/weather_snowflake_config.json
+
+# Python
+__pycache__/
+*.pyc
+
+# VSCode 설정
+.vscode/
+
+# Airflow 로그, DB
+logs/
+airflow.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
